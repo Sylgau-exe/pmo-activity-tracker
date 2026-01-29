@@ -1,8 +1,11 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'PMO Activity Tracker',
-  description: 'Kanban board for project portfolio management - Sylvain × Claude Collaboration Hub',
+  title: 'ARGUS | Nothing Slips Through',
+  description: 'ARGUS - The all-seeing project tracker. 100 eyes watching your commitments.',
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({ children }) {
@@ -11,7 +14,7 @@ export default function RootLayout({ children }) {
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet" />
       </head>
       <body>{children}</body>
     </html>
