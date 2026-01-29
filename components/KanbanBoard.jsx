@@ -28,6 +28,42 @@ const PROJECTS = {
 const EFFORT_SIZES = ['XS', 'S', 'M', 'L', 'XL'];
 const IMPACT_LEVELS = ['Low', 'Medium', 'High'];
 
+// ARGUS Personality - Insights and nudges
+const ARGUS_INSIGHTS = {
+  stale: [
+    "I've spotted {count} tasks gathering dust. Shall we revisit them?",
+    "{count} items haven't moved in 14+ days. Time for a check-in?",
+    "My 100 eyes see {count} stale tasks. Let's not forget these.",
+  ],
+  blocked: [
+    "{count} tasks are blocked. Every blocker is a decision waiting to be made.",
+    "I'm watching {count} blocked items. Need help clearing the path?",
+  ],
+  wipExceeded: [
+    "WIP limits exceeded in {columns}. Focus beats multitasking.",
+    "Too much in flight. I recommend finishing before starting.",
+  ],
+  allClear: [
+    "All systems nominal. Your flow looks healthy today.",
+    "Nothing urgent on my radar. Steady progress wins.",
+    "Clean board, clear mind. Keep the momentum going.",
+  ],
+  greeting: [
+    "Argus online. I see all, forget nothing.",
+    "100 eyes, one focus: your success.",
+    "Standing watch. Let's review your commitments.",
+  ],
+};
+
+const getRandomInsight = (category, replacements = {}) => {
+  const insights = ARGUS_INSIGHTS[category];
+  let insight = insights[Math.floor(Math.random() * insights.length)];
+  Object.entries(replacements).forEach(([key, value]) => {
+    insight = insight.replace(`{${key}}`, value);
+  });
+  return insight;
+};
+
 // Calculate days since date
 const daysSince = (dateStr) => {
   if (!dateStr) return null;
@@ -50,12 +86,39 @@ export default function KanbanBoard() {
   const [showArchive, setShowArchive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [argusMessage, setArgusMessage] = useState('');
+  const [showArgusPanel, setShowArgusPanel] = useState(true);
 
   // Fetch tasks from API on mount
   useEffect(() => {
     fetchTasks();
     fetchArchivedTasks();
   }, []);
+
+  // ARGUS Intelligence - analyze tasks and provide insights
+  useEffect(() => {
+    if (tasks.length === 0) {
+      setArgusMessage(getRandomInsight('greeting'));
+      return;
+    }
+
+    const staleTasks = tasks.filter(t => daysSince(t.lastSessionDate) >= 14);
+    const blockedTasks = tasks.filter(t => t.blocked);
+    const wipExceededCols = columns.filter(col => {
+      if (!col.wipLimit) return false;
+      return tasks.filter(t => t.status === col.id).length > col.wipLimit;
+    });
+
+    if (staleTasks.length > 0) {
+      setArgusMessage(getRandomInsight('stale', { count: staleTasks.length }));
+    } else if (blockedTasks.length > 0) {
+      setArgusMessage(getRandomInsight('blocked', { count: blockedTasks.length }));
+    } else if (wipExceededCols.length > 0) {
+      setArgusMessage(getRandomInsight('wipExceeded', { columns: wipExceededCols.map(c => c.title).join(', ') }));
+    } else {
+      setArgusMessage(getRandomInsight('allClear'));
+    }
+  }, [tasks, columns]);
 
   const fetchTasks = async () => {
     try {
@@ -229,10 +292,12 @@ export default function KanbanBoard() {
   };
 
   // Stats
+  const staleTasks = tasks.filter(t => daysSince(t.lastSessionDate) >= 14);
   const stats = {
     total: tasks.length,
     inProgress: tasks.filter(t => t.status === 'in-progress').length,
     blocked: tasks.filter(t => t.blocked).length,
+    stale: staleTasks.length,
     completedThisWeek: tasks.filter(t => {
       if (!t.completedDate) return false;
       return daysSince(t.completedDate) <= 7;
@@ -242,8 +307,8 @@ export default function KanbanBoard() {
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
-        <div style={styles.loadingSpinner}></div>
-        <p>Loading tasks...</p>
+        <div style={styles.argusEye}>👁</div>
+        <p style={styles.loadingText}>ARGUS initializing...</p>
       </div>
     );
   }
@@ -263,11 +328,15 @@ export default function KanbanBoard() {
       {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerLeft}>
-          <h1 style={styles.title}>
-            <span style={styles.titleIcon}>⚡</span>
-            PMO Activity Tracker
-          </h1>
-          <p style={styles.subtitle}>Sylvain × Claude Collaboration Hub</p>
+          <div style={styles.logoContainer}>
+            <div style={styles.argusLogo}>
+              <span style={styles.eyeIcon}>👁</span>
+            </div>
+            <div>
+              <h1 style={styles.title}>ARGUS</h1>
+              <p style={styles.subtitle}>Nothing slips through</p>
+            </div>
+          </div>
         </div>
         <div style={styles.headerRight}>
           <div style={styles.statsRow}>
@@ -284,12 +353,33 @@ export default function KanbanBoard() {
               <span style={styles.statLabel}>Blocked</span>
             </div>
             <div style={styles.stat}>
+              <span style={{...styles.statValue, color: '#f59e0b'}}>{stats.stale}</span>
+              <span style={styles.statLabel}>Stale</span>
+            </div>
+            <div style={styles.stat}>
               <span style={{...styles.statValue, color: '#22c55e'}}>{stats.completedThisWeek}</span>
               <span style={styles.statLabel}>This Week</span>
             </div>
           </div>
         </div>
       </header>
+
+      {/* ARGUS Intelligence Panel */}
+      {showArgusPanel && (
+        <div style={styles.argusPanel}>
+          <div style={styles.argusPanelContent}>
+            <span style={styles.argusPanelEye}>👁</span>
+            <p style={styles.argusPanelMessage}>{argusMessage}</p>
+          </div>
+          <button 
+            onClick={() => setShowArgusPanel(false)} 
+            style={styles.argusPanelClose}
+            title="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Toolbar */}
       <div style={styles.toolbar}>
@@ -337,6 +427,15 @@ export default function KanbanBoard() {
         </div>
 
         <div style={styles.actions}>
+          {!showArgusPanel && (
+            <button 
+              onClick={() => setShowArgusPanel(true)}
+              style={{...styles.button, ...styles.argusButton}}
+              title="Show ARGUS insights"
+            >
+              👁
+            </button>
+          )}
           <button 
             onClick={() => setShowArchive(!showArchive)}
             style={{...styles.button, ...styles.secondaryButton}}
@@ -461,6 +560,7 @@ function TaskCard({ task, onDragStart, onEdit, onArchive, onToggleBlock }) {
           {tag?.emoji} {task.project}
         </span>
         {task.blocked && <span style={styles.blockedBadge}>🚫 Blocked</span>}
+        {isStale && <span style={styles.staleBadgeCard}>👁 Stale</span>}
       </div>
       
       <h3 style={styles.cardTitle}>{task.title}</h3>
@@ -487,7 +587,7 @@ function TaskCard({ task, onDragStart, onEdit, onArchive, onToggleBlock }) {
         {stale !== null && (
           <span style={{
             ...styles.staleBadge,
-            color: isStale ? '#dc2626' : '#64748b',
+            color: isStale ? '#f59e0b' : '#64748b',
           }}>
             {stale}d ago
           </span>
@@ -786,13 +886,13 @@ function TaskModal({ task, onSave, onClose, onDelete }) {
 const styles = {
   container: {
     minHeight: '100vh',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0a0f1a',
     color: '#e2e8f0',
     fontFamily: "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif",
   },
   loadingContainer: {
     minHeight: '100vh',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0a0f1a',
     color: '#e2e8f0',
     display: 'flex',
     flexDirection: 'column',
@@ -800,17 +900,19 @@ const styles = {
     justifyContent: 'center',
     gap: '16px',
   },
-  loadingSpinner: {
-    width: '40px',
-    height: '40px',
-    border: '3px solid #334155',
-    borderTop: '3px solid #3b82f6',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
+  argusEye: {
+    fontSize: '64px',
+    animation: 'pulse 2s ease-in-out infinite',
+  },
+  loadingText: {
+    fontSize: '18px',
+    color: '#64748b',
+    letterSpacing: '2px',
+    textTransform: 'uppercase',
   },
   errorContainer: {
     minHeight: '100vh',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0a0f1a',
     color: '#e2e8f0',
     display: 'flex',
     flexDirection: 'column',
@@ -823,28 +925,46 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '24px 32px',
+    padding: '20px 32px',
     borderBottom: '1px solid #1e293b',
-    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+    background: 'linear-gradient(135deg, #0a0f1a 0%, #1a1f2e 100%)',
   },
   headerLeft: {},
   headerRight: {},
+  logoContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+  },
+  argusLogo: {
+    width: '50px',
+    height: '50px',
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #1e40af 0%, #7c3aed 100%)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 0 20px rgba(124, 58, 237, 0.4)',
+  },
+  eyeIcon: {
+    fontSize: '28px',
+  },
   title: {
     fontSize: '28px',
     fontWeight: '700',
     margin: 0,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    letterSpacing: '-0.5px',
-  },
-  titleIcon: {
-    fontSize: '32px',
+    letterSpacing: '4px',
+    background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text',
   },
   subtitle: {
-    margin: '4px 0 0 0',
+    margin: '2px 0 0 0',
     color: '#64748b',
-    fontSize: '14px',
+    fontSize: '12px',
+    letterSpacing: '2px',
+    textTransform: 'uppercase',
   },
   statsRow: {
     display: 'flex',
@@ -866,13 +986,43 @@ const styles = {
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
   },
+  argusPanel: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '12px 32px',
+    background: 'linear-gradient(135deg, rgba(30, 64, 175, 0.2) 0%, rgba(124, 58, 237, 0.2) 100%)',
+    borderBottom: '1px solid rgba(124, 58, 237, 0.3)',
+  },
+  argusPanelContent: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  argusPanelEye: {
+    fontSize: '20px',
+  },
+  argusPanelMessage: {
+    margin: 0,
+    fontSize: '14px',
+    color: '#c4b5fd',
+    fontStyle: 'italic',
+  },
+  argusPanelClose: {
+    background: 'none',
+    border: 'none',
+    color: '#64748b',
+    fontSize: '20px',
+    cursor: 'pointer',
+    padding: '4px 8px',
+  },
   toolbar: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '16px 32px',
     borderBottom: '1px solid #1e293b',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0a0f1a',
     flexWrap: 'wrap',
     gap: '12px',
   },
@@ -929,6 +1079,10 @@ const styles = {
   secondaryButton: {
     backgroundColor: '#334155',
   },
+  argusButton: {
+    background: 'linear-gradient(135deg, #1e40af 0%, #7c3aed 100%)',
+    padding: '10px 14px',
+  },
   archivePanel: {
     padding: '16px 32px',
     backgroundColor: '#1e293b',
@@ -978,23 +1132,24 @@ const styles = {
     gap: '16px',
     padding: '24px 32px',
     overflowX: 'auto',
-    minHeight: 'calc(100vh - 180px)',
+    minHeight: 'calc(100vh - 200px)',
   },
   column: {
     minWidth: '300px',
     maxWidth: '300px',
-    backgroundColor: '#1e293b',
+    backgroundColor: '#111827',
     borderRadius: '12px',
     display: 'flex',
     flexDirection: 'column',
     transition: 'all 0.2s',
+    border: '1px solid #1e293b',
   },
   columnOverLimit: {
     boxShadow: '0 0 0 2px #ef4444',
   },
   columnHeader: {
     padding: '16px',
-    borderBottom: '1px solid #334155',
+    borderBottom: '1px solid #1e293b',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -1012,7 +1167,7 @@ const styles = {
     gap: '8px',
   },
   columnCount: {
-    backgroundColor: '#334155',
+    backgroundColor: '#1e293b',
     padding: '2px 8px',
     borderRadius: '10px',
     fontSize: '12px',
@@ -1051,13 +1206,15 @@ const styles = {
     background: 'repeating-linear-gradient(45deg, #0f172a, #0f172a 10px, #1a1a2e 10px, #1a1a2e 20px)',
   },
   cardStale: {
-    boxShadow: 'inset 0 0 0 1px #dc2626',
+    boxShadow: 'inset 0 0 0 1px #f59e0b',
   },
   cardHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: '8px',
+    flexWrap: 'wrap',
+    gap: '4px',
   },
   tag: {
     padding: '2px 8px',
@@ -1069,6 +1226,10 @@ const styles = {
   blockedBadge: {
     fontSize: '11px',
     color: '#fca5a5',
+  },
+  staleBadgeCard: {
+    fontSize: '11px',
+    color: '#fbbf24',
   },
   cardTitle: {
     margin: '0 0 8px 0',
@@ -1131,7 +1292,7 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1139,19 +1300,20 @@ const styles = {
     padding: '20px',
   },
   modal: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#111827',
     borderRadius: '12px',
     width: '100%',
     maxWidth: '700px',
     maxHeight: '90vh',
     overflow: 'auto',
+    border: '1px solid #1e293b',
   },
   modalHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '20px 24px',
-    borderBottom: '1px solid #334155',
+    borderBottom: '1px solid #1e293b',
   },
   modalTitle: {
     margin: 0,
@@ -1217,7 +1379,7 @@ const styles = {
     letterSpacing: '1px',
     marginTop: '8px',
     paddingTop: '16px',
-    borderTop: '1px solid #334155',
+    borderTop: '1px solid #1e293b',
   },
   techInputRow: {
     display: 'flex',
@@ -1262,7 +1424,7 @@ const styles = {
     alignItems: 'center',
     marginTop: '24px',
     paddingTop: '16px',
-    borderTop: '1px solid #334155',
+    borderTop: '1px solid #1e293b',
   },
   modalFooterRight: {
     display: 'flex',
