@@ -1,97 +1,106 @@
-# ⚡ PMO Activity Tracker
+# 👁 ARGUS
 
-A Kanban board for project portfolio management - the **Sylvain × Claude Collaboration Hub**.
+**Nothing slips through.**
+
+ARGUS is an all-seeing project tracker built for the Sylvain × Claude collaboration. Named after the hundred-eyed giant of Greek mythology, ARGUS watches your commitments, spots stale tasks, and keeps you honest.
 
 ## Features
 
-- 📋 **Kanban Board** with drag-and-drop
-- 🎯 **Portfolio Taxonomy** - PMO Ecosystem, Consulting, Tools, Speaking
-- ⚡ **WIP Limits** with visual alerts
-- 🔍 **Filtering** by portfolio, project, and stale items
+### Core Kanban
+- 📋 **Drag-and-drop Kanban board** with 6 columns
+- ⚡ **WIP Limits** with visual alerts when exceeded
+- 🎯 **Portfolio taxonomy** - PMO Ecosystem, Consulting, Tools, Speaking
+- 🔍 **Filtering** by portfolio, project, stale items
 - 📦 **Archive** for completed work
-- 🗓️ **Session Context** - track where we left off
-- 💾 **Persistent Storage** via Neon PostgreSQL
+- 💾 **Persistent storage** via Neon PostgreSQL
+
+### ARGUS Intelligence
+- 👁 **Stale task detection** - highlights items untouched for 14+ days
+- 🚫 **Blocker tracking** - surfaces blocked items
+- 💬 **Contextual insights** - personalized nudges based on board state
+- 📊 **Session context** - tracks where you left off
 
 ## Tech Stack
 
-- **Framework**: Next.js 14 (App Router)
-- **Database**: Neon PostgreSQL
-- **Deployment**: Vercel
-- **Styling**: CSS-in-JS
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 14 (App Router) |
+| Database | Neon PostgreSQL |
+| Deployment | Vercel |
+| Styling | CSS-in-JS |
 
-## Quick Deploy to Vercel
+## Quick Deploy
 
 ### 1. Push to GitHub
 
 ```bash
 git init
 git add .
-git commit -m "Initial commit"
+git commit -m "ARGUS is watching"
 git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/pmo-activity-tracker.git
+git remote add origin https://github.com/YOUR_USERNAME/argus.git
 git push -u origin main
 ```
 
 ### 2. Deploy on Vercel
 
 1. Go to [vercel.com](https://vercel.com)
-2. Click **Add New → Project**
-3. Import your GitHub repository
-4. Click **Deploy**
+2. Import your GitHub repository
+3. Deploy
 
 ### 3. Connect Neon Database
 
-1. In Vercel dashboard, go to **Storage**
+1. In Vercel dashboard → **Storage**
 2. Click **Connect Database → Neon**
-3. Select your existing database (`green-forest-39154336`) or create new
+3. Select or create your database
 4. Vercel auto-injects `DATABASE_URL` ✅
 
 ### 4. Initialize Database
 
-After connecting Neon, run the setup script:
+Run in Neon SQL Editor:
 
-```bash
-# Option A: Via Vercel CLI
-vercel env pull .env.local
-npm run db:setup
+```sql
+CREATE TABLE IF NOT EXISTS tasks (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'backlog',
+  portfolio TEXT NOT NULL,
+  project TEXT,
+  effort TEXT,
+  impact TEXT,
+  blocked BOOLEAN DEFAULT FALSE,
+  blocker_reason TEXT,
+  due_date DATE,
+  start_date DATE,
+  completed_date DATE,
+  last_session_date DATE,
+  session_notes TEXT,
+  next_action TEXT,
+  repo_url TEXT,
+  tech_stack TEXT[],
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  archived_at TIMESTAMP WITH TIME ZONE
+);
 
-# Option B: Manually in Neon Console
-# Copy and run the SQL from scripts/setup-db.js
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_portfolio ON tasks(portfolio);
+CREATE INDEX IF NOT EXISTS idx_tasks_archived ON tasks(archived_at);
 ```
-
-## Local Development
-
-```bash
-# Install dependencies
-npm install
-
-# Copy environment variables
-cp .env.example .env.local
-# Edit .env.local with your Neon connection string
-
-# Initialize database
-npm run db:setup
-
-# Start development server
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000)
 
 ## Project Structure
 
 ```
 ├── app/
-│   ├── api/tasks/          # API routes for CRUD
+│   ├── api/tasks/          # CRUD API routes
 │   ├── layout.js           # Root layout
 │   ├── page.js             # Home page
-│   └── globals.css         # Global styles
+│   └── globals.css         # ARGUS theme
 ├── components/
-│   └── KanbanBoard.jsx     # Main Kanban component
+│   └── KanbanBoard.jsx     # Main component with ARGUS intelligence
 ├── lib/
 │   └── db.js               # Neon connection
-├── scripts/
-│   └── setup-db.js         # Database initialization
 └── package.json
 ```
 
@@ -103,6 +112,22 @@ Open [http://localhost:3000](http://localhost:3000)
 | 💼 consulting | Consulting | BL Camions, Capacity Planner |
 | 📊 tools | Tools | Financial Dashboard, Invoice Tracker, Activity Tracker |
 | 🚢 speaking | Speaking | Cruise Content, Presentations, Destination Talks |
+
+## ARGUS Personality
+
+ARGUS provides contextual insights based on your board state:
+
+**When stale tasks exist:**
+> "I've spotted 3 tasks gathering dust. Shall we revisit them?"
+
+**When blockers exist:**
+> "2 tasks are blocked. Every blocker is a decision waiting to be made."
+
+**When WIP exceeded:**
+> "WIP limits exceeded in In Progress. Focus beats multitasking."
+
+**When all clear:**
+> "All systems nominal. Your flow looks healthy today."
 
 ## API Endpoints
 
@@ -120,10 +145,11 @@ Open [http://localhost:3000](http://localhost:3000)
 
 - [x] Phase 1: Kanban board with localStorage
 - [x] Phase 2: Neon database integration
+- [x] Phase 2.5: ARGUS personality & intelligence
 - [ ] Phase 3: Analytics dashboard (CFD, Cycle Time)
 - [ ] Phase 4: Gantt view toggle
 - [ ] Phase 5: Recurring tasks automation
 
 ---
 
-Built for the PMO Ecosystem 🚀
+**ARGUS is watching. Nothing slips through.** 👁
