@@ -1,0 +1,19 @@
+{
+  "name": "pmo-activity-tracker",
+  "version": "1.0.0",
+  "description": "PMO Activity Tracker - Kanban board for project portfolio management",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:setup": "node scripts/setup-db.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.9.0",
+    "next": "14.2.21",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}
