@@ -1,9 +1,10 @@
-import { sql } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { NextResponse } from 'next/server';
 
 // GET /api/tasks - Fetch all tasks (excluding archived by default)
 export async function GET(request) {
   try {
+    const sql = getDb();
     const { searchParams } = new URL(request.url);
     const includeArchived = searchParams.get('archived') === 'true';
     
@@ -35,6 +36,7 @@ export async function GET(request) {
 // POST /api/tasks - Create a new task
 export async function POST(request) {
   try {
+    const sql = getDb();
     const body = await request.json();
     const id = `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
@@ -78,6 +80,7 @@ export async function POST(request) {
 // PUT /api/tasks - Update a task
 export async function PUT(request) {
   try {
+    const sql = getDb();
     const body = await request.json();
     
     if (!body.id) {
@@ -122,6 +125,7 @@ export async function PUT(request) {
 // DELETE /api/tasks - Delete a task permanently
 export async function DELETE(request) {
   try {
+    const sql = getDb();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
